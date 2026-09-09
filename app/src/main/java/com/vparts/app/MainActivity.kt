@@ -1,4 +1,4 @@
-package com.vparts.app // UPDATED
+package com.vparts.app
 
 import android.content.Context
 import android.content.Intent
@@ -23,6 +23,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    VideoClipperApp(sharedUrl)
+                    VpartsApp(sharedUrl)
                 }
             }
         }
@@ -52,10 +53,13 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VideoClipperApp(initialUrl: String) {
+fun VpartsApp(initialUrl: String) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+    
+    // UI State for bottom error messages
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var url by remember { mutableStateOf(initialUrl) }
     var intervals by remember { mutableStateOf(listOf<Interval>()) }
@@ -88,6 +92,7 @@ fun VideoClipperApp(initialUrl: String) {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // Enables bottom error messages
         topBar = {
             TopAppBar(
                 title = { Text("Vparts") },
@@ -109,9 +114,22 @@ fun VideoClipperApp(initialUrl: String) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = {
-                    if (intervals.isEmpty()) intervals = listOf(Interval("00:00", "00:30"))
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Find Top Viewership Peaks")
+                    coroutineScope.launch {
+                        isProcessing = true
+                        try {
+                            // Mocking the scraping process. In a real scenario without a backend, 
+                            // parsing heatmaps natively on Android is highly likely to fail.
+                            delay(1000) 
+                            throw Exception("Native scraping unsupported. Falling back to default interval.")
+                        } catch (e: Exception) {
+                            snackbarHostState.showSnackbar(e.message ?: "Failed to find peaks")
+                            if (intervals.isEmpty()) intervals = listOf(Interval("00:00", "00:30"))
+                        } finally {
+                            isProcessing = false
+                        }
+                    }
+                }, modifier = Modifier.fillMaxWidth(), enabled = !isProcessing) {
+                    Text(if (isProcessing) "Searching for peaks..." else "Find Top Viewership Peaks")
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -148,16 +166,30 @@ fun VideoClipperApp(initialUrl: String) {
                     onClick = {
                         coroutineScope.launch {
                             isProcessing = true
-                            val sourceFile = FfmpegHelper.downloadDummyVideo(context, url)
-                            
-                            val generatedClips = mutableListOf<Clip>()
-                            for (interval in intervals) {
-                                val out = File(context.cacheDir, "clip_${UUID.randomUUID()}.mp4")
-                                FfmpegHelper.processClip(sourceFile, out, interval.from, interval.to, overlayText)
-                                generatedClips.add(Clip(file = out))
+                            try {
+                                val sourceFile = FfmpegHelper.downloadDummyVideo(context, url)
+                                val generatedClips = mutableListOf<Clip>()
+                                
+                                for (interval in intervals) {
+                                    val out = File(context.cacheDir, "clip_${UUID.randomUUID()}.mp4")
+                                    val success = FfmpegHelper.processClip(sourceFile, out, interval.from, interval.to, overlayText)
+                                    
+                                    if (success) {
+                                        generatedClips.add(Clip(file = out))
+                                    } else {
+                                        throw Exception("FFmpeg failed. Make sure the video URL was actually downloaded.")
+                                    }
+                                }
+                                clips = generatedClips
+                                if (clips.isNotEmpty()) {
+                                    snackbarHostState.showSnackbar("Clips generated successfully!")
+                                }
+                            } catch (e: Exception) {
+                                // Catches errors and displays them at the bottom instead of crashing
+                                snackbarHostState.showSnackbar("Error: ${e.message}")
+                            } finally {
+                                isProcessing = false
                             }
-                            clips = generatedClips
-                            isProcessing = false
                         }
                     }, 
                     modifier = Modifier.fillMaxWidth(),
@@ -189,10 +221,18 @@ fun VideoClipperApp(initialUrl: String) {
                         }
                         Button(onClick = {
                             coroutineScope.launch {
-                                val pId = prefs.getString("page_id", "") ?: ""
-                                val tok = prefs.getString("token", "") ?: ""
-                                val success = FacebookHelper.uploadVideo(pId, tok, clip.file, hashtags, clip.delayMins)
-                                Toast.makeText(context, if (success) "Posted!" else "Failed", Toast.LENGTH_SHORT).show()
+                                try {
+                                    val pId = prefs.getString("page_id", "") ?: ""
+                                    val tok = prefs.getString("token", "") ?: ""
+                                    if (pId.isBlank() || tok.isBlank()) {
+                                        snackbarHostState.showSnackbar("Please add FB Page ID & Token in Settings")
+                                        return@launch
+                                    }
+                                    val success = FacebookHelper.uploadVideo(pId, tok, clip.file, hashtags, clip.delayMins)
+                                    snackbarHostState.showSnackbar(if (success) "Posted successfully!" else "Upload failed.")
+                                } catch (e: Exception) {
+                                    snackbarHostState.showSnackbar("Upload Error: ${e.message}")
+                                }
                             }
                         }, modifier = Modifier.fillMaxWidth()) {
                             Text(if (clip.delayMins == 0) "Post Now" else "Schedule (+${clip.delayMins} mins)")
