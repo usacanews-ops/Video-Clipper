@@ -2,6 +2,7 @@ package com.vparts.app
 
 import android.content.Context
 import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -14,11 +15,11 @@ object FfmpegHelper {
             
             val command = "-y -i ${input.absolutePath} -ss 00:$from -to 00:$to -filter_complex \"$filterGraph\" -map \"[v]\" -map \"[a]\" ${output.absolutePath}"
             
-            // Execute returns a session. We check the return code to ensure it didn't fail.
+            // Execute returns a session.
             val session = FFmpegKit.execute(command)
             
-            // Return true if successful, false if it failed (e.g. invalid 0-byte dummy video)
-            session.returnCode.isSuccess
+            // Correct way to check for success in FFmpegKit
+            ReturnCode.isSuccess(session.returnCode)
         }
     }
 
