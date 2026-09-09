@@ -1,4 +1,4 @@
-package com.videoclipper.app
+package com.vparts.app
 
 import android.content.Context
 import android.content.Intent
@@ -90,7 +90,7 @@ fun VideoClipperApp(initialUrl: String) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Video Clipper") },
+                title = { Text("Vparts") },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, "Settings")
