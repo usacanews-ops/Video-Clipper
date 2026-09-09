@@ -1,4 +1,4 @@
-package com.vparts.app
+package com.vparts.app // UPDATED
 
 import android.content.Context
 import android.content.Intent
@@ -148,8 +148,6 @@ fun VideoClipperApp(initialUrl: String) {
                     onClick = {
                         coroutineScope.launch {
                             isProcessing = true
-                            // NOTE: Native YT/FB downloading requires robust scrapers. Using dummy/placeholder for demo.
-                            // In real app, pass URL to an API or ytdl implementation.
                             val sourceFile = FfmpegHelper.downloadDummyVideo(context, url)
                             
                             val generatedClips = mutableListOf<Clip>()
