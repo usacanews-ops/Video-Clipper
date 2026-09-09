@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.videoclipper.app"
+    namespace = "com.vparts.app" // UPDATED
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.videoclipper.app"
+        applicationId = "com.vparts.app" // UPDATED
         minSdk = 24
         targetSdk = 34
         versionCode = 1
