@@ -14,10 +14,10 @@
             android:name=".MainActivity"
             android:exported="true">
             
-            <!-- Explicitly Separated Launcher Intent -->
+            <!-- FIXED: Changed 'action.LAUNCHER' to 'category.LAUNCHER' so the icon actually appears -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.action.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <!-- Explicitly Separated Share Intent -->
