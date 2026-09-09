@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.videoclipper.app">
+    package="com.vparts.app"> <!-- UPDATED -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -14,13 +14,11 @@
             android:name=".MainActivity"
             android:exported="true">
             
-            <!-- FIXED: Changed 'action.LAUNCHER' to 'category.LAUNCHER' so the icon actually appears -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Explicitly Separated Share Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
